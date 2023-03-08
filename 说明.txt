@@ -1,0 +1,13 @@
+﻿1、安装jdk8，配置环境变量
+2、在当前文件夹，创建
+  歌手集合.txt
+  处理文件夹.txt
+若需要格式化歌手，需建立：
+  tmp-歌手集合.txt
+3、javac -encoding utf-8 mp3.java
+4、java mp3
+5、若修改mp3.java，需下载notepad++，保存utf-8（无bom编码）
+
+注意：
+1、会递归处理修改文件。修改规则“歌手-歌名.后缀”
+2、使用文本编辑器修改，编译会报“错误: 非法字符: '\ufeff'”。需notepad++，utf-8编码修改才行，并且编译指定encoding
