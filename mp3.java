@@ -4,9 +4,12 @@ import java.text.Collator;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 修改MP3文件名
+ */
 public class mp3 {
 
-    static final String dealSuffix[] = "mp3,wma".split(",");
+    static final String dealSuffix[] = "mp3,wma,lrc".split(",");
     static Set<String> singerList = new HashSet<>();
     static Set<String> dirMap = new HashSet<>();
 
@@ -21,7 +24,7 @@ public class mp3 {
         if("1".equals(op)){
             beautySinger();
             System.out.println();
-            System.out.println("处理完成，生成文件：歌手集合.txt");
+            System.out.println("处理完成，生成文件：resources/歌手集合.txt");
         }else{
             dealSong();
             System.out.println("处理完成，已替换歌名");
@@ -29,11 +32,11 @@ public class mp3 {
     }
 
     public static void beautySinger() throws Exception{
-        String tmpSinger = "tmp-歌手集合.txt";
+        String tmpSinger = "resources/tmp-歌手集合.txt";
 
         File file = new File(tmpSinger);
         if(!file.exists()){
-            System.out.println("请填写文件：tmp-歌手集合.txt（使用逗号，句号，或换行分隔）");
+            System.out.println("请填写文件：resources/tmp-歌手集合.txt（使用逗号，句号，或换行分隔）");
             System.out.println("程序已退出");
             System.exit(0);
         }
@@ -61,7 +64,7 @@ public class mp3 {
         Arrays.sort(singerList, Collator.getInstance(Locale.CHINA));
 
         //保存文件
-        String targetSinger = "歌手集合.txt";
+        String targetSinger = "resources/歌手集合2.txt";
         writeToFileAppend(targetSinger, singerList);
 
     }
@@ -132,8 +135,8 @@ public class mp3 {
      *************************************************************************/
 
     public static void dealSong() throws Exception {
-        String singerFile = "歌手集合.txt";
-        String dirFile = "处理文件夹.txt";
+        String singerFile = "resources/歌手集合.txt";
+        String dirFile = "resources/处理文件夹.txt";
 
 
         File file = new File(singerFile);
@@ -218,6 +221,8 @@ public class mp3 {
             for(int i=0; i<files.length; i++){
                 //只处理文件
                 if(files[i].isDirectory()) continue;
+                //只处理有后缀的文件
+                if(files[i].getName().indexOf(".")==-1) continue;
 
                 String oldName = files[i].getName();
                 String suffix = oldName.substring(oldName.lastIndexOf("."));
@@ -226,30 +231,52 @@ public class mp3 {
                 if(Arrays.stream(dealSuffix).allMatch(s->suffix.toLowerCase().indexOf(s.toLowerCase())==-1)) continue;
 
                 //歌手
-                String matchSinger = singerList.stream()
-                        .filter(n->oldName.toLowerCase().indexOf(n.toLowerCase())>-1).findFirst().orElse("");
-                if(matchSinger != ""){
-                    matchSinger = matchSinger.toUpperCase(Locale.ROOT);
-                }
+                Set<String> matchSingerList = singerList.stream()
+                        .filter(n->oldName.replace(".","").toLowerCase().indexOf(n.toLowerCase())>-1)
+                        .collect(Collectors.toSet());
+
                 //歌名
-                String songName = oldName.replace(matchSinger,"")
-                        .replace("-","").replace(suffix,"").trim()
+                String songName = oldName.replace("-","").replace(suffix,"")
                         //替换123.
-                        .replaceAll("[\\d]+\\.","");
+                        .replaceAll("[\\d]+\\.","")
+                        .replace("《","")
+                        .replace("》","")
+                        .replace("+","")
+                        .replace(".","").replace("。","")
+                        .replace(",","").replace("，","").trim();
+
+                for (String matchSinger : matchSingerList) {
+                    songName = songName.toLowerCase().replace(matchSinger.toLowerCase(),"");
+                }
 
                 //歌手名 + "-" + 歌名 + 后缀
                 String newName;
-                if("".equals(matchSinger)){
+                if(matchSingerList.size() == 0){
                     newName = songName + suffix;
                 }else{
-                    newName = matchSinger + "-" + songName + suffix;
+                    //用+号隔开多个歌手
+                    newName = String.join("+", matchSingerList) + "-" + songName + suffix;
                 }
 
                 System.out.println("修改前：" + oldName);
                 String newNamePath = files[i].getParent()
                         + "\\" + newName;
                 System.out.println("修改后：" + newNamePath);
-				files[i].renameTo(new File(newNamePath));
+				//修改文件属性中的，歌手+歌名
+                boolean isModifyProp = Arrays.stream("mp3,wma".split(","))
+                        .anyMatch(s->suffix.toLowerCase().indexOf(s.toLowerCase())!=-1);
+                if(true){
+                    try{
+                        WriteMp3InfoByLv2.setID3V2(files[i],songName,String.join("+", matchSingerList),
+                                null,
+                                null);
+                    }catch (Exception e){
+                        System.out.println("修改文件属性失败："+songName);
+                        e.printStackTrace();
+                    }
+                }
+                //修改文件名
+                files[i].renameTo(new File(newNamePath));
             }
         }
         System.out.println();

@@ -7,7 +7,6 @@
 3、javac -encoding utf-8 mp3.java
 4、java mp3
 5、若修改mp3.java，需下载notepad++，保存utf-8（无bom编码）
-6、使用WriteMp3InfoByLv2.setID3V2，修改文件属性的，歌手和歌名
 
 注意：
 1、会递归处理修改文件。修改规则“歌手-歌名.后缀”
